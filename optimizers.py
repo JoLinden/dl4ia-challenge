@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import sklearn.metrics as skl_m
 import torch
 from torch import nn
@@ -20,10 +19,7 @@ def train(dataloader, model, loss_fn, optimizer, device, verbose=False):
 
         training_loss = training_loss.item()
         y_pred = nn.Softmax(dim=1)(prediction)[:, 1]
-        #print(y.shape, y_pred.shape, y)
         training_losses.append(training_loss)
-        # metric_score = skl_m.roc_auc_score(y.cpu().detach(),
-        #                                    y_pred.cpu().detach())
         metric_score = skl_m.mean_squared_error(y.cpu().detach(),
                                                 y_pred.cpu().detach())
         metrics.append(metric_score)
@@ -49,11 +45,7 @@ def validate(dataloader, model, loss_fn, device, verbose=False):
 
             prediction = model(X)
             y_pred = nn.Softmax(dim=1)(prediction)[:, 1]
-            #y_pred = y_pred[:, 1]
-            #print(y.shape, y_pred.shape, y)
             validation_losses.append(loss_fn(prediction, y).item())
-            # metric_score = skl_m.roc_auc_score(y.cpu().detach(),
-            #                                    y_pred.cpu().detach())
             metric_score = skl_m.mean_squared_error(y.cpu().detach(),
                                                     y_pred.cpu().detach())
             metrics.append(metric_score)
