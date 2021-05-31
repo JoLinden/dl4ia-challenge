@@ -66,7 +66,7 @@ class ConvNeuralNetwork(nn.Module):
     
 class ResConvNeuralNetwork(nn.Module):
     def __init__(self):
-        super(ConvNeuralNetwork, self).__init__()
+        super(ResConvNeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
         self.conv_network = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=8, kernel_size=(3, 3),
