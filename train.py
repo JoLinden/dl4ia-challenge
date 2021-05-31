@@ -60,6 +60,9 @@ training_metrics = np.zeros(epochs)
 validation_losses = []
 validation_metrics = []
 
+best_model_state = None
+best_model_metric = 100
+
 for epoch in range(epochs):
     print(f'Running epoch {epoch+1}')
     training_metrics[epoch], training_losses[epoch] =\
@@ -72,10 +75,17 @@ for epoch in range(epochs):
                      'cuda', verbose=False)
         validation_metrics.append(validation_metric)
         validation_losses.append(validation_loss)
-
-    torch.save(model.state_dict(), model_path)
+        
+        if validation_metric < best_model_metric:
+            print("Saving as best model")
+            torch.save(model.state_dict(), model_path)
+            best_model_metric = validation_metric
+        print("\n")
 
 print('\nTraining complete.\n')
+
+# load best performing model
+model.load_state_dict(torch.load(model_path))
 
 if not os.path.isdir(f'output/{opt.model}'):
     os.makedirs(f'output/{opt.model}')
