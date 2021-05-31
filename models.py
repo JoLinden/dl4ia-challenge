@@ -12,6 +12,7 @@ class ConvolutionalClassification(nn.Module):
         x = self.avg_pool(x)
         return x
 
+    
 class ResidualBlock(nn.Module):
     def __init__(self, layer_count, channel_num, filter_size=3):
         super(ResidualBlock, self).__init__()
@@ -19,11 +20,9 @@ class ResidualBlock(nn.Module):
         conv_list = []
         for i in range(layer_count):
             conv_list.append((f'conv{i}', nn.Conv2d(channel_num, channel_num, filter_size, padding=1)))
-            conv_list.append((f'bathnorm{i}', nn.BatchNorm2d(channel_num)))
             conv_list.append((f'relu{i}', nn.ReLU()))
             
         self.conv = nn.Sequential(OrderedDict(conv_list))
-        
         self.relu = nn.ReLU()
         
     def forward(self, x):
@@ -33,6 +32,7 @@ class ResidualBlock(nn.Module):
         out = self.relu(x)
         return out
 
+    
 class ConvNeuralNetwork(nn.Module):
     def __init__(self):
         super(ConvNeuralNetwork, self).__init__()
