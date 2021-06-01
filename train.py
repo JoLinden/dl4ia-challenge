@@ -1,4 +1,5 @@
 import argparse
+import glob
 import os
 from datasets import OralCancerImageDataset
 from models import ConvNeuralNetwork
@@ -30,6 +31,18 @@ data_path = os.path.join(os.getcwd(), 'data')
 train_dir = os.path.join(data_path, 'train')
 labels_file = os.path.join(data_path, 'train.csv')
 
+train_dataset_length = len(glob.glob(train_dir + '/*.jpg'))
+
+rng = np.random.default_rng()
+indices = np.arange(0, train_dataset_length)
+rng.shuffle(indices, 0)
+
+train_data_length = int(train_dataset_length * 0.75)
+validation_data_length = train_dataset_length - train_data_length
+
+train_indices = indices[:train_data_length]
+validation_indices = indices[train_data_length:]
+
 train_transform = transforms.Compose([
     DiscreteRotationTransform(angles=[-90, 90, 180]),
     transforms.RandomHorizontalFlip(),
@@ -37,17 +50,17 @@ train_transform = transforms.Compose([
 ])
 
 train_dataset = OralCancerImageDataset(img_dir=train_dir,
-                                       labels_file=labels_file)
+                                       labels_file=labels_file,
+                                       indices=train_indices,
+                                       transform=train_transform)
+validation_dataset = OralCancerImageDataset(img_dir=train_dir,
+                                            labels_file=labels_file,
+                                            indices=validation_indices)
 
-train_data_length = int(len(train_dataset) * 0.75)
-validation_data_length = len(train_dataset) - train_data_length
-
-train_data, validation_data = random_split(
-    train_dataset, [train_data_length, validation_data_length])
-
-train_dataloader = DataLoader(train_data, batch_size=opt.batch_size,
+train_dataloader = DataLoader(train_dataset, batch_size=opt.batch_size,
                               shuffle=True, num_workers=opt.n_cpu)
-validation_dataloader = DataLoader(validation_data, batch_size=opt.batch_size,
+validation_dataloader = DataLoader(validation_dataset,
+                                   batch_size=opt.batch_size,
                                    shuffle=True, num_workers=opt.n_cpu)
 
 model = ConvNeuralNetwork().to('cuda')
