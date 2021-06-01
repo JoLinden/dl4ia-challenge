@@ -8,10 +8,11 @@ from transforms import DiscreteRotationTransform
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import sklearn.metrics as skl_m
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, WeightedRandomSampler
 from torchvision import transforms
 
 parser = argparse.ArgumentParser()
@@ -44,7 +45,7 @@ train_indices = indices[:train_data_length]
 validation_indices = indices[train_data_length:]
 
 train_transform = transforms.Compose([
-    DiscreteRotationTransform(angles=[-90, 90, 180]),
+    DiscreteRotationTransform(angles=[0, -90, 90, 180]),
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip()
 ])
@@ -57,14 +58,23 @@ validation_dataset = OralCancerImageDataset(img_dir=train_dir,
                                             labels_file=labels_file,
                                             indices=validation_indices)
 
+training_labels = pd.read_csv(labels_file)
+sampler_false_weight = np.sum(training_labels.iloc[train_indices]['Diagnosis'])/len(train_indices)
+sampler_true_weight = 1 - sampler_false_weight
+sampler_weights = np.where(training_labels['Diagnosis'] == 1,
+                           sampler_true_weight, sampler_false_weight)
+sampler = WeightedRandomSampler(sampler_weights[train_indices],
+                                len(train_indices))
+
 train_dataloader = DataLoader(train_dataset, batch_size=opt.batch_size,
-                              shuffle=True, num_workers=opt.n_cpu)
+                              num_workers=opt.n_cpu,
+                              sampler=sampler)
 validation_dataloader = DataLoader(validation_dataset,
                                    batch_size=opt.batch_size,
                                    shuffle=True, num_workers=opt.n_cpu)
 
 model = ConvNeuralNetwork().to('cuda')
-optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr)
+optimizer = torch.optim.AdamW(model.parameters(), lr=opt.lr)
 loss_fn = nn.CrossEntropyLoss()
 epochs = opt.epochs
 
@@ -148,9 +158,13 @@ precision = skl_m.precision_score(all_y_true, all_y_pred_binary)
 recall = skl_m.recall_score(all_y_true, all_y_pred_binary)
 f1 = skl_m.f1_score(all_y_true, all_y_pred_binary)
 
-print('Final validation metrics')
-print(f' AUC: {auc:.4f}')
-print(f' Accuracy: {accuracy:.4f}')
-print(f' Precision: {precision:.4f}')
-print(f' Recall: {recall:.4f}')
-print(f' F1: {f1:.4f}')
+metrics_output = f'Final validation metrics\n' \
+                 f' AUC: {auc:.4f}\n' \
+                 f' Accuracy: {accuracy:.4f}\n' \
+                 f' Precision: {precision:.4f}\n' \
+                 f' Recall: {recall:.4f}\n' \
+                 f' F1: {f1:.4f}'
+print(metrics_output)
+
+with open(f'output/{opt.model}/metrics.txt', 'w') as f:
+    f.write(metrics_output)
